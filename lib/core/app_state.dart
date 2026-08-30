@@ -46,11 +46,12 @@ class AppState extends ChangeNotifier {
 
   // ---- people -------------------------------------------------------------
 
-  Future<void> addPerson(String name) async {
+  Future<Person> addPerson(String name) async {
     final p = Person(id: newId(), name: name.trim());
     _people = [..._people, p];
     await _store.putPerson(p);
     notifyListeners();
+    return p;
   }
 
   Future<void> removePerson(String id) async {

@@ -62,6 +62,61 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   int get _total => parsePaise(_amount.text) ?? 0;
 
+  /// Adds a group member without leaving the form. The new person is created,
+  /// given their own allocation controllers, and pre-selected as a participant
+  /// — so a fourth flatmate joining the auto ride costs one tap, not a trip
+  /// through a settings screen.
+  Future<void> _addPersonInline() async {
+    final state = context.read<AppState>();
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add someone to the group'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(hintText: 'Name'),
+          onSubmitted: (v) => Navigator.pop(ctx, v),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('Add')),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    final trimmed = (name ?? '').trim();
+    if (trimmed.isEmpty) return;
+    if (trimmed.length > 24) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Keep names under 24 characters.')));
+      return;
+    }
+    if (state.people
+        .any((p) => p.name.toLowerCase() == trimmed.toLowerCase())) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$trimmed is already in the group.')));
+      return;
+    }
+
+    final person = await state.addPerson(trimmed);
+    if (!mounted) return;
+    setState(() {
+      _exact[person.id] = TextEditingController();
+      _pct[person.id] = TextEditingController();
+      _participants.add(person.id);
+    });
+  }
+
   Map<String, int> get _exactEntered => {
         for (final id in _participants)
           id: parsePaise(_exact[id]?.text ?? '') ?? 0
@@ -210,24 +265,50 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   .toList(),
             ),
             const SizedBox(height: 18),
-            _Label('Split between'),
+            Row(
+              children: [
+                _Label('Split between'),
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    '${_participants.length} selected',
+                    style: TextStyle(fontSize: 12, color: cs.outline),
+                  ),
+                ),
+              ],
+            ),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: state.people.map((p) {
-                final on = _participants.contains(p.id);
-                return FilterChip(
-                  selected: on,
-                  label: Text(p.name),
-                  onSelected: (s) => setState(() {
-                    if (s) {
-                      _participants.add(p.id);
-                    } else {
-                      _participants.remove(p.id);
-                    }
-                  }),
-                );
-              }).toList(),
+              children: [
+                ...state.people.map((p) {
+                  final on = _participants.contains(p.id);
+                  return FilterChip(
+                    selected: on,
+                    label: Text(p.name),
+                    onSelected: (s) => setState(() {
+                      if (s) {
+                        _participants.add(p.id);
+                      } else {
+                        _participants.remove(p.id);
+                      }
+                    }),
+                  );
+                }),
+                ActionChip(
+                  avatar: const Icon(Icons.person_add_alt_1_rounded, size: 17),
+                  label: const Text('Add person'),
+                  onPressed: _addPersonInline,
+                ),
+                if (_participants.length != state.people.length)
+                  ActionChip(
+                    avatar: const Icon(Icons.select_all_rounded, size: 17),
+                    label: const Text('Select all'),
+                    onPressed: () => setState(() => _participants
+                        .addAll(state.people.map((p) => p.id))),
+                  ),
+              ],
             ),
             if (_participants.isEmpty)
               Padding(
