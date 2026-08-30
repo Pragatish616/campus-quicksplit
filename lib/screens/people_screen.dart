@@ -99,9 +99,27 @@ class _PeopleScreenState extends State<PeopleScreen> {
                     tooltip: locked
                         ? 'Settle their balance first'
                         : 'Remove from group',
-                    onPressed: locked
-                        ? null
-                        : () => state.removePerson(p.id),
+                    color: locked ? cs.outline : cs.error,
+                    onPressed: () {
+                      if (locked) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${p.name} still has an open balance of '
+                              '${rupees(net.abs())}. Settle it on the Settle '
+                              'tab first — removing them now would destroy '
+                              'money in the ledger.',
+                            ),
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                        return;
+                      }
+                      state.removePerson(p.id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Removed ${p.name}')),
+                      );
+                    },
                     icon: const Icon(Icons.person_remove_outlined),
                   ),
                 ),
