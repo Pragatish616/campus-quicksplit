@@ -39,7 +39,16 @@ class ExpenseCategory {
   static const misc = ExpenseCategory(
       'misc', 'Misc', Icons.category_rounded, Color(0xFF5F6368));
 
-  static const all = <ExpenseCategory>[auto, food, subs, print, stay, misc];
+  /// Not user-selectable — only created by "mark as paid" on the Settle tab.
+  static const settle = ExpenseCategory(
+      'settle', 'Settlement', Icons.handshake_rounded, Color(0xFF1A73E8));
+
+  static const all =
+      <ExpenseCategory>[auto, food, subs, print, stay, misc, settle];
+
+  /// The categories the user may pick when logging a new expense.
+  static const selectable =
+      <ExpenseCategory>[auto, food, subs, print, stay, misc];
 
   static ExpenseCategory byId(String id) =>
       all.firstWhere((c) => c.id == id, orElse: () => misc);

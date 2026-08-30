@@ -85,6 +85,25 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Records a repayment as a first-class ledger entry rather than mutating
+  /// balances directly. The payer is credited the full amount and the receiver
+  /// is debited it, so the two cancel exactly and the debt disappears from the
+  /// optimiser on the next rebuild. Nothing is ever destructively edited —
+  /// the ledger stays append-only and auditable, and "undo" is just a delete.
+  Future<void> recordSettlement(Settlement s) async {
+    final e = Expense(
+      id: newId(),
+      title: '${nameOf(s.fromId)} paid ${nameOf(s.toId)}',
+      categoryId: ExpenseCategory.settle.id,
+      amountPaise: s.amountPaise,
+      createdAt: DateTime.now(),
+      mode: SplitMode.exact,
+      payers: {s.fromId: s.amountPaise},
+      shares: {s.toId: s.amountPaise},
+    );
+    await addExpense(e);
+  }
+
   Future<void> restoreExpense(Expense e) async {
     _expenses = [..._expenses, e]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));

@@ -185,7 +185,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: ExpenseCategory.all
+              children: ExpenseCategory.selectable
                   .map((c) => ChoiceChip(
                         selected: _category.id == c.id,
                         onSelected: (_) => setState(() => _category = c),

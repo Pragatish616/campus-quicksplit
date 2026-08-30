@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/app_state.dart';
+import '../core/models.dart';
 import '../core/split_engine.dart';
 
 class SettleScreen extends StatelessWidget {
@@ -86,23 +87,39 @@ class SettleScreen extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: Card(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                  child: Row(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _Chip(text: state.nameOf(s.fromId), color: cs.errorContainer, fg: cs.onErrorContainer),
-                      const SizedBox(width: 8),
-                      Icon(Icons.arrow_forward_rounded,
-                          size: 18, color: cs.outline),
-                      const SizedBox(width: 8),
-                      _Chip(
-                          text: state.nameOf(s.toId),
-                          color: cs.secondaryContainer,
-                          fg: cs.onSecondaryContainer),
-                      const Spacer(),
-                      Text(rupees(s.amountPaise),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w800, fontSize: 15)),
+                      Row(
+                        children: [
+                          _Chip(
+                              text: state.nameOf(s.fromId),
+                              color: cs.errorContainer,
+                              fg: cs.onErrorContainer),
+                          const SizedBox(width: 8),
+                          Icon(Icons.arrow_forward_rounded,
+                              size: 18, color: cs.outline),
+                          const SizedBox(width: 8),
+                          _Chip(
+                              text: state.nameOf(s.toId),
+                              color: cs.secondaryContainer,
+                              fg: cs.onSecondaryContainer),
+                          const Spacer(),
+                          Text(rupees(s.amountPaise),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 15)),
+                        ],
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () => _confirmPaid(context, s),
+                          icon: const Icon(Icons.check_circle_outline_rounded,
+                              size: 18),
+                          label: const Text('Mark as paid'),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -146,6 +163,48 @@ class SettleScreen extends StatelessWidget {
       ],
     );
   }
+}
+
+Future<void> _confirmPaid(BuildContext context, Settlement s) async {
+  final state = context.read<AppState>();
+  final messenger = ScaffoldMessenger.of(context);
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Record this payment?'),
+      content: Text(
+        '${state.nameOf(s.fromId)} pays ${state.nameOf(s.toId)} '
+        '${rupees(s.amountPaise)}.\n\n'
+        'This is added to the ledger as a settlement entry, so the balances '
+        'cancel out and it stays visible in Activity.',
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel')),
+        FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirm')),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  await state.recordSettlement(s);
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text('Settled ${rupees(s.amountPaise)}'),
+      action: SnackBarAction(
+        label: 'UNDO',
+        onPressed: () {
+          final last = state.expenses.firstWhere(
+            (e) => e.categoryId == 'settle',
+            orElse: () => state.expenses.first,
+          );
+          state.deleteExpense(last.id);
+        },
+      ),
+    ),
+  );
 }
 
 class _Chip extends StatelessWidget {
