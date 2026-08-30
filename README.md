@@ -19,7 +19,7 @@ splitting cost ₹80 and nobody is creating an account for ₹80.
 |---|---|
 | ![Light](docs/06_light.png) | ![Dark](docs/07_dark.png) |
 
-> Demo video: **[Google Drive link →](PASTE_YOUR_DRIVE_LINK_HERE)**
+> Demo video: **[Google Drive link →]https://drive.google.com/file/d/1Ql60ltaUUFZbrBvycOQc-UOaKF1-g7Ty/view?usp=sharing**
 
 ---
 
